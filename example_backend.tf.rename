@@ -1,0 +1,39 @@
+# -----------------------------------------------------------------------------
+# Backend Configuration for Remote State Storage
+#
+# Rename this file to backend.tf and configure for your environment
+# This enables storing Terraform state in GCS (Google Cloud Storage)
+# -----------------------------------------------------------------------------
+
+terraform {
+  backend "gcs" {
+    # GCS bucket for state storage (must be created beforehand)
+    bucket = "your-terraform-state-bucket"
+
+    # Path/prefix within the bucket
+    prefix = "terraform/hammerspace/state"
+
+    # Optional: Use specific credentials file
+    # credentials = "/path/to/service-account-key.json"
+
+    # Optional: Encryption key
+    # encryption_key = "your-32-character-encryption-key"
+  }
+}
+
+# Alternative: Using Terraform Cloud
+# terraform {
+#   cloud {
+#     organization = "your-organization"
+#
+#     workspaces {
+#       name = "hammerspace-gcp"
+#     }
+#   }
+# }
+
+# To migrate existing local state to remote:
+# 1. Rename this file to backend.tf
+# 2. Configure the bucket settings
+# 3. Run: terraform init -migrate-state
+# 4. Confirm migration when prompted

@@ -1,0 +1,177 @@
+# Copyright (c) 2025 Hammerspace, Inc
+# -----------------------------------------------------------------------------
+# terraform.tfvars.example
+#
+# Example variables file for the Terraform-GCP project.
+# Copy this file to terraform.tfvars and customize the values for your deployment.
+# -----------------------------------------------------------------------------
+
+# Required Variables - You MUST set these
+
+project_id   = "your-gcp-project-id"
+project_name = "your-deployment-name"
+subnet_name  = "your-subnet-name"
+
+# Optional Variables - Customize as needed
+
+# Region and Zone
+region = "us-west1"
+zone   = "us-west1-a"
+
+# Network Configuration
+network_name               = "your-network-name"
+create_network             = false  # Set to true to create new VPC network
+create_firewall_rules      = true   # Set to false to skip firewall rule creation
+subnet_cidr                = "10.0.0.0/24"  # CIDR for the new subnet (if create_network = true)
+allowed_source_cidr_blocks = ["10.0.0.0/8", "192.168.0.0/16"]
+assign_public_ip           = false
+public_subnet_name         = ""  # Leave empty when using the same subnet for public IPs
+
+# SSH Configuration
+ssh_keys = [
+  # Add SSH public keys in format: "ssh-rsa AAAA... user@host"
+]
+
+# Admin user password - CHANGE THIS TO A SECURE PASSWORD
+admin_user_password = "CHANGE_ME_TO_SECURE_PASSWORD"
+
+# Component Deployment
+deploy_components = ["hammerspace"]  # Options: "all", "clients", "storage", "hammerspace", "ecgroup"
+
+# Labels for all resources
+labels = {
+  environment = "dev"
+  team        = "infrastructure"
+  project     = "hammerspace"
+}
+
+# Network tags for firewall rules
+tags = ["hammerspace"]
+
+# Service Account (leave null to create new)
+service_account_email = null
+iam_admin_group_name  = null
+iam_additional_roles  = []
+
+# Placement Policy (for instance collocation)
+placement_policy_name                      = ""  # Set to enable placement policy
+placement_policy_vm_count                  = 2
+placement_policy_availability_domain_count = 1
+placement_policy_collocation               = "COLLOCATED"
+
+# Image Configuration
+image_project = "hammerspace-dev"  # Project containing Hammerspace images
+
+# KMS Key for encryption (optional)
+# kms_key = "projects/your-project/locations/global/keyRings/your-keyring/cryptoKeys/your-key"
+
+# -----------------------------------------------------------------------------
+# Ansible Configuration
+# -----------------------------------------------------------------------------
+
+ansible_instance_count      = 0
+ansible_image               = "ubuntu-2204-jammy-v20250924"
+ansible_machine_type        = "e2-medium"
+ansible_boot_disk_size      = 20
+ansible_boot_disk_type      = "pd-standard"
+ansible_target_user         = "ansible"
+ansible_preemptible         = false
+ansible_automatic_restart   = true
+ansible_on_host_maintenance = "MIGRATE"
+
+# -----------------------------------------------------------------------------
+# Client Configuration
+# -----------------------------------------------------------------------------
+
+clients_instance_count               = 0
+clients_image                        = "ubuntu-2204-jammy-v20250924"
+clients_machine_type                 = "n2-standard-4"
+clients_boot_disk_size               = 50
+clients_boot_disk_type               = "pd-balanced"
+clients_disk_count                   = 0
+clients_disk_size                    = 100
+clients_disk_type                    = "pd-balanced"
+clients_tier0                        = false
+clients_tier0_type                   = "NVME"
+clients_target_user                  = "ubuntu"
+clients_preemptible                  = false
+clients_automatic_restart            = true
+clients_on_host_maintenance          = "MIGRATE"
+clients_enable_nested_virtualization = false
+clients_threads_per_core             = 2
+
+# -----------------------------------------------------------------------------
+# Storage Server Configuration
+# -----------------------------------------------------------------------------
+
+storage_instance_count       = 0
+storage_image                = "ubuntu-2204-jammy-v20250924"
+storage_machine_type         = "n2-standard-8"
+storage_boot_disk_size       = 50
+storage_boot_disk_type       = "pd-balanced"
+storage_raid_level           = "0"
+storage_disk_count           = 4
+storage_disk_size            = 1000
+storage_disk_type            = "pd-standard"
+storage_target_user          = "ubuntu"
+storage_preemptible          = false
+storage_automatic_restart    = true
+storage_on_host_maintenance  = "MIGRATE"
+storage_enable_ip_forwarding = false
+storage_deletion_protection  = false
+storage_min_cpu_platform     = ""
+
+# -----------------------------------------------------------------------------
+# Hammerspace Configuration
+# -----------------------------------------------------------------------------
+
+hammerspace_image = "hammerspace-5-3-0-86324"  # Update with your Hammerspace image
+
+# Anvil Configuration
+hammerspace_anvil_count          = 2      # Set to 2 for HA, 1 for standalone
+hammerspace_sa_anvil_destruction = false
+hammerspace_anvil_machine_type   = "n2-standard-16"
+hammerspace_anvil_meta_disk_size = 500
+hammerspace_anvil_meta_disk_type = "pd-ssd"
+
+# DSX Configuration
+hammerspace_dsx_count        = 2
+hammerspace_dsx_machine_type = "n2-standard-8"
+hammerspace_dsx_disk_size    = 500
+hammerspace_dsx_disk_type    = "pd-ssd"
+hammerspace_dsx_disk_count   = 1
+hammerspace_dsx_add_vols     = []
+
+# Common Hammerspace Settings
+hammerspace_preemptible         = false
+hammerspace_automatic_restart   = true
+hammerspace_on_host_maintenance = "MIGRATE"
+hammerspace_deletion_protection = false
+hammerspace_enable_display      = false
+
+# Hammerspace Security and Configuration Settings
+enable_logging                 = true
+enable_monitoring              = true
+enable_https                   = false
+add_nodes_to_existing_solution = false
+internal_ip                    = ""  # Set to cluster IP when adding nodes to existing solution
+
+# -----------------------------------------------------------------------------
+# ECGroup Configuration
+# -----------------------------------------------------------------------------
+
+ecgroup_node_count           = 0
+ecgroup_image                = "ubuntu-2204-jammy-v20250924"
+ecgroup_machine_type         = "n2-standard-8"
+ecgroup_boot_disk_size       = 50
+ecgroup_boot_disk_type       = "pd-balanced"
+ecgroup_metadata_disk_size   = 100
+ecgroup_metadata_disk_type   = "pd-ssd"
+ecgroup_storage_disk_count   = 4
+ecgroup_storage_disk_size    = 500
+ecgroup_storage_disk_type    = "pd-standard"
+ecgroup_preemptible          = false
+ecgroup_automatic_restart    = true
+ecgroup_on_host_maintenance  = "MIGRATE"
+ecgroup_enable_ip_forwarding = false
+ecgroup_deletion_protection  = false
