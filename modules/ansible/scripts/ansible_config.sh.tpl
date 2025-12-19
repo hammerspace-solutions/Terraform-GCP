@@ -1,0 +1,57 @@
+#!/bin/bash
+# Copyright (c) 2025 Hammerspace, Inc
+# Install Ansible controller (functions + daemon), create a systemd unit, enable & start it.
+
+set -euo pipefail
+
+JOBS_DIR="/usr/local/ansible/jobs"
+TRIGGER_DIR="/var/ansible/trigger"
+STATUS_DIR="/var/run/ansible_jobs_status"
+ANSIBLE_LIB="/usr/local/lib/ansible_functions.sh"
+ANSIBLE_DAEMON="/usr/local/bin/ansible_controller_daemon.sh"
+UNIT_PATH="/etc/systemd/system/ansible-controller.service"
+
+sudo mkdir -p /usr/local/lib /usr/local/bin "$JOBS_DIR" "$TRIGGER_DIR" "$STATUS_DIR" /etc/ansible
+
+# --- Install function library ---
+sudo tee "$ANSIBLE_LIB" >/dev/null <<'EOF'
+${functions_script}
+EOF
+
+# --- Install daemon script ---
+sudo tee "$ANSIBLE_DAEMON" >/dev/null <<'EOF'
+${daemon_script}
+EOF
+
+sudo chmod 0644 "$ANSIBLE_LIB"
+sudo chmod 0755 "$ANSIBLE_DAEMON"
+
+# --- Create systemd unit ---
+sudo tee "$UNIT_PATH" >/dev/null <<'EOF'
+[Unit]
+Description=Ansible Controller Daemon (inventory-triggered job runner)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/ansible_controller_daemon.sh
+Restart=always
+RestartSec=5s
+# Run as root (change if you maintain a dedicated ansible user)
+User=root
+Group=root
+# Hardening (optional, relax if your jobs need wider access)
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# --- Reload, enable & start ---
+sudo systemctl daemon-reload
+sudo systemctl enable --now ansible-controller.service
+
+# --- Status hint ---
+echo "ansible-controller.service is now: $(systemctl is-active ansible-controller.service)"
+echo "Logs: journalctl -u ansible-controller.service -f"

@@ -148,3 +148,70 @@ variable "admin_public_key_path" {
   type        = string
   default     = ""
 }
+
+# -----------------------------------------------------------------------------
+# Ansible Controller Daemon Variables
+# -----------------------------------------------------------------------------
+
+variable "enable_daemon" {
+  description = "Enable the Ansible controller daemon for automated playbook execution"
+  type        = bool
+  default     = false
+}
+
+variable "anvil_cluster_ip" {
+  description = "Hammerspace Anvil cluster IP address for API access"
+  type        = string
+  default     = ""
+}
+
+variable "hs_username" {
+  description = "Hammerspace admin username"
+  type        = string
+  default     = "admin"
+}
+
+variable "hs_password" {
+  description = "Hammerspace admin password"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "volume_group_name" {
+  description = "Name for the Hammerspace volume group"
+  type        = string
+  default     = "ecgroup-volumes"
+}
+
+variable "share_name" {
+  description = "Name for the Hammerspace share"
+  type        = string
+  default     = "ecgroup-share"
+}
+
+variable "storages" {
+  description = "List of storage nodes to add to Hammerspace cluster"
+  type = list(object({
+    name       = string
+    nodeType   = string
+    ipAddress  = string
+  }))
+  default = []
+}
+
+variable "share_config" {
+  description = "Share configuration for Hammerspace"
+  type = object({
+    name        = string
+    path        = string
+    exportPath  = string
+    description = string
+  })
+  default = {
+    name        = "default-share"
+    path        = "/default"
+    exportPath  = "/default"
+    description = "Default Hammerspace share"
+  }
+}

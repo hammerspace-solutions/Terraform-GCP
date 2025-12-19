@@ -105,3 +105,59 @@ variable "ansible_on_host_maintenance" {
     error_message = "on_host_maintenance must be either MIGRATE or TERMINATE."
   }
 }
+
+# -----------------------------------------------------------------------------
+# Ansible Controller Daemon Variables
+# -----------------------------------------------------------------------------
+
+variable "ansible_enable_daemon" {
+  description = "Enable the Ansible controller daemon for automated Hammerspace integration"
+  type        = bool
+  default     = false
+}
+
+variable "ansible_volume_group_name" {
+  description = "Name for the Hammerspace volume group created by Ansible"
+  type        = string
+  default     = "ecgroup-volumes"
+}
+
+variable "ansible_share_name" {
+  description = "Name for the Hammerspace share created by Ansible"
+  type        = string
+  default     = "ecgroup-share"
+}
+
+variable "ansible_share_path" {
+  description = "Path for the Hammerspace share"
+  type        = string
+  default     = "/ecgroup"
+}
+
+variable "ansible_share_export_path" {
+  description = "Export path for the Hammerspace share"
+  type        = string
+  default     = "/ecgroup"
+}
+
+variable "ansible_share_description" {
+  description = "Description for the Hammerspace share"
+  type        = string
+  default     = "ECGroup automated share"
+}
+
+variable "ansible_anvil_cluster_ip" {
+  description = "Hammerspace Anvil cluster IP address (required if ansible_enable_daemon is true)"
+  type        = string
+  default     = ""
+}
+
+variable "ansible_storages" {
+  description = "List of storage nodes to add to Hammerspace cluster. Set after initial deployment with ECGroup/Storage IPs."
+  type = list(object({
+    name      = string
+    nodeType  = string
+    ipAddress = string
+  }))
+  default = []
+}

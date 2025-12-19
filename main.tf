@@ -475,6 +475,26 @@ module "ansible" {
   use_startup_script = var.use_startup_script
   ssh_keys           = var.ansible_ssh_keys
 
+  # Ansible Controller Daemon Configuration
+  # Note: anvil_cluster_ip and storages are configured via terraform.tfvars
+  # after initial deployment when the Anvil cluster IP and ECGroup node IPs are known.
+
+  enable_daemon     = var.ansible_enable_daemon
+  anvil_cluster_ip  = var.ansible_anvil_cluster_ip
+  hs_username       = "admin"
+  hs_password       = var.admin_user_password
+  volume_group_name = var.ansible_volume_group_name
+  share_name        = var.ansible_share_name
+  storages          = var.ansible_storages
+
+  # Share configuration
+  share_config = {
+    name        = var.ansible_share_name
+    path        = var.ansible_share_path
+    exportPath  = var.ansible_share_export_path
+    description = var.ansible_share_description
+  }
+
   depends_on = [
     module.iam_core
   ]

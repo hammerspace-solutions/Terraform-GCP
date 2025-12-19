@@ -1,0 +1,50 @@
+#!/bin/bash
+# Copyright (c) 2025 Hammerspace, Inc
+# Library of functions for the Ansible Controller
+
+LOCK_FILE="/var/ansible_initial_setup.done"
+STATUS_DIR="/var/run/ansible_jobs_status"
+INVENTORY_DST="/etc/ansible/inventory.ini"
+CURRENT_RUN_FILE="$STATUS_DIR/current_run_id"
+
+# Return the active inventory file path (prints to stdout, exit 0 if exists)
+get_active_inventory() {
+  if [ -f "$INVENTORY_DST" ]; then
+    echo "$INVENTORY_DST"
+    return 0
+  fi
+  return 1
+}
+
+# Resolve the current RUN_ID: prefer env RUN_ID, else read from state file
+get_current_run_id() {
+  if [ -n "${RUN_ID:-}" ]; then
+    echo "$RUN_ID"
+    return 0
+  fi
+  if [ -f "$CURRENT_RUN_FILE" ]; then
+    cat "$CURRENT_RUN_FILE"
+    return 0
+  fi
+  return 1
+}
+
+# Check if a job succeeded in the context of a run id.
+# Usage: check_job_status "10-my-step.sh" [RUN_ID]
+check_job_status() {
+  local job="$1"
+  local rid="${2:-}"
+  if [ -z "$rid" ]; then
+    rid="$(get_current_run_id || true)"
+  fi
+  if [ -n "$rid" ] && [ -f "$STATUS_DIR/${rid}.${job}.success" ]; then
+    return 0
+  fi
+  return 1
+}
+
+# One-time initialization hook
+run_initial_setup() {
+  mkdir -p "$STATUS_DIR"
+  touch "$LOCK_FILE"
+}

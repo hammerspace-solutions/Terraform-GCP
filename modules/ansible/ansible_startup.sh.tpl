@@ -1,5 +1,6 @@
 #!/bin/bash
-# Ansible Controller Startup Script
+# Copyright (c) 2025 Hammerspace, Inc
+# Ansible Controller Startup Script with Daemon Support
 
 set -e
 
@@ -7,7 +8,7 @@ set -e
 apt-get update
 
 # Install Ansible and dependencies
-apt-get install -y software-properties-common python3-pip git
+apt-get install -y software-properties-common python3-pip git jq curl
 
 # Install Ansible via pip for latest version
 pip3 install ansible ansible-core
@@ -83,5 +84,85 @@ EOF
 chown -R ${target_user}:${target_user} /home/${target_user}/playbooks
 chown -R ${target_user}:${target_user} /home/${target_user}/inventories
 chown -R ${target_user}:${target_user} /home/${target_user}/roles
+
+# -----------------------------------------------------------------------------
+# Ansible Controller Daemon Setup
+# -----------------------------------------------------------------------------
+%{ if enable_daemon ~}
+
+JOBS_DIR="/usr/local/ansible/jobs"
+TRIGGER_DIR="/var/ansible/trigger"
+STATUS_DIR="/var/run/ansible_jobs_status"
+PLAYBOOKS_DIR="/usr/local/ansible/playbooks"
+VARS_DIR="/usr/local/ansible/vars"
+ANSIBLE_LIB="/usr/local/lib/ansible_functions.sh"
+ANSIBLE_DAEMON="/usr/local/bin/ansible_controller_daemon.sh"
+UNIT_PATH="/etc/systemd/system/ansible-controller.service"
+
+# Create directories
+mkdir -p /usr/local/lib /usr/local/bin "$JOBS_DIR" "$TRIGGER_DIR" "$STATUS_DIR" "$PLAYBOOKS_DIR" "$VARS_DIR"
+
+# --- Install function library ---
+cat > "$ANSIBLE_LIB" <<'FUNCEOF'
+${functions_script}
+FUNCEOF
+
+# --- Install daemon script ---
+cat > "$ANSIBLE_DAEMON" <<'DAEMONEOF'
+${daemon_script}
+DAEMONEOF
+
+chmod 0644 "$ANSIBLE_LIB"
+chmod 0755 "$ANSIBLE_DAEMON"
+
+# --- Install Hammerspace playbook ---
+cat > "$PLAYBOOKS_DIR/hs-ansible.yml" <<'PLAYBOOKEOF'
+${playbook_script}
+PLAYBOOKEOF
+
+chmod 0644 "$PLAYBOOKS_DIR/hs-ansible.yml"
+
+# --- Install job script ---
+cat > "$JOBS_DIR/10-hammerspace-integration.sh" <<'JOBEOF'
+${job_script}
+JOBEOF
+
+chmod 0755 "$JOBS_DIR/10-hammerspace-integration.sh"
+
+# --- Install Hammerspace variables file ---
+cat > "$VARS_DIR/hammerspace_vars.json" <<'VARSEOF'
+${vars_json}
+VARSEOF
+
+chmod 0644 "$VARS_DIR/hammerspace_vars.json"
+
+# --- Create systemd unit ---
+cat > "$UNIT_PATH" <<'UNITEOF'
+[Unit]
+Description=Ansible Controller Daemon (inventory-triggered job runner)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/ansible_controller_daemon.sh
+Restart=always
+RestartSec=5s
+User=root
+Group=root
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target
+UNITEOF
+
+# --- Reload, enable & start ---
+systemctl daemon-reload
+systemctl enable --now ansible-controller.service
+
+echo "ansible-controller.service is now: $(systemctl is-active ansible-controller.service)"
+echo "Logs: journalctl -u ansible-controller.service -f"
+
+%{ endif ~}
 
 echo "Ansible controller setup complete"

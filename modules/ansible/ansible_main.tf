@@ -59,13 +59,57 @@ resource "local_file" "ansible_public_key" {
   file_permission = "0644"
 }
 
+# Read script templates for daemon mode
+locals {
+  functions_script = file("${path.module}/scripts/ansible_functions.sh.tpl")
+  daemon_script    = file("${path.module}/scripts/ansible_controller_daemon.sh.tpl")
+  playbook_script  = file("${path.module}/scripts/hs-ansible.yml")
+
+  # Generate job script with variables
+  job_script = templatefile("${path.module}/scripts/10-hammerspace-integration.sh.tpl", {
+    anvil_cluster_ip  = var.anvil_cluster_ip
+    hs_username       = var.hs_username
+    hs_password       = var.hs_password
+    volume_group_name = var.volume_group_name
+    share_name        = var.share_name
+  })
+
+  # Generate variables JSON for playbook
+  vars_json = jsonencode({
+    storages = var.storages
+    share = {
+      "_type"       = "SHARE"
+      "name"        = var.share_config.name
+      "path"        = var.share_config.path
+      "exportPath"  = var.share_config.exportPath
+      "description" = var.share_config.description
+      "exportOptions" = [
+        {
+          "_type"                  = "EXPORT_OPTION"
+          "name"                   = "*"
+          "accessType"             = "READ_WRITE"
+          "squash"                 = "NO_ROOT_SQUASH"
+          "securityModes"          = ["SYS"]
+          "networkAddressAllowed"  = "*"
+        }
+      ]
+    }
+  })
+}
+
 # Startup script for Ansible controller
 locals {
   startup_script = var.use_startup_script ? templatefile("${path.module}/ansible_startup.sh.tpl", {
-    target_user    = var.target_user
-    admin_pub_key  = var.admin_private_key_path == "" ? tls_private_key.ansible_ssh[0].public_key_openssh : file(var.admin_public_key_path)
-    admin_priv_key = var.admin_private_key_path == "" ? tls_private_key.ansible_ssh[0].private_key_pem : file(var.admin_private_key_path)
-    allow_root     = var.common_config.allow_root
+    target_user      = var.target_user
+    admin_pub_key    = var.admin_private_key_path == "" ? tls_private_key.ansible_ssh[0].public_key_openssh : file(var.admin_public_key_path)
+    admin_priv_key   = var.admin_private_key_path == "" ? tls_private_key.ansible_ssh[0].private_key_pem : file(var.admin_private_key_path)
+    allow_root       = var.common_config.allow_root
+    enable_daemon    = var.enable_daemon
+    functions_script = local.functions_script
+    daemon_script    = local.daemon_script
+    playbook_script  = local.playbook_script
+    job_script       = local.job_script
+    vars_json        = local.vars_json
   }) : ""
 }
 
