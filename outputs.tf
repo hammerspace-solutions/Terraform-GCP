@@ -208,3 +208,24 @@ output "deployment_summary" {
     }
   }
 }
+
+# Hammerspace Cluster IP (for HA deployments)
+output "hammerspace_cluster_ip" {
+  description = "The Hammerspace cluster IP address (use this for ansible_anvil_cluster_ip)"
+  value       = local.deploy_hammerspace ? module.hammerspace[0].cluster_ip : null
+}
+
+# Ansible Daemon Configuration Helper
+output "ansible_daemon_config" {
+  description = "Configuration values to use for enabling the Ansible daemon after deployment"
+  value = local.deploy_ecgroup && local.deploy_hammerspace ? {
+    ansible_anvil_cluster_ip = module.hammerspace[0].cluster_ip != null ? module.hammerspace[0].cluster_ip : module.hammerspace[0].anvil_private_ips[0]
+    ansible_storages = [
+      for name, inst in module.ecgroup[0].ecgroup_instances : {
+        name      = name
+        nodeType  = "OTHER"
+        ipAddress = inst.private_ip
+      }
+    ]
+  } : null
+}

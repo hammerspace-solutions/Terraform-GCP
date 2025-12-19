@@ -79,6 +79,31 @@ ansible_preemptible         = false
 ansible_automatic_restart   = true
 ansible_on_host_maintenance = "MIGRATE"
 
+# Ansible Daemon Configuration (for automated ECGroup/Storage integration)
+# To enable automated node integration:
+# 1. Deploy initially with ansible_enable_daemon = false
+# 2. After deployment, update the values below with actual IPs from terraform output
+# 3. Set ansible_enable_daemon = true and run terraform apply again
+
+ansible_enable_daemon       = false
+ansible_volume_group_name   = "ecgroup-volumes"
+ansible_share_name          = "ecgroup-share"
+ansible_share_path          = "/ecgroup"
+ansible_share_export_path   = "/ecgroup"
+ansible_share_description   = "ECGroup automated share"
+
+# Set this to Anvil cluster IP after initial deployment
+# Get from: terraform output -raw anvil_cluster_ip (for HA) or first anvil IP
+ansible_anvil_cluster_ip    = ""
+
+# Set this after initial deployment with ECGroup node names and IPs
+# Example:
+# ansible_storages = [
+#   { name = "hs-product-general-ecgroup-1", nodeType = "OTHER", ipAddress = "10.0.0.10" },
+#   { name = "hs-product-general-ecgroup-2", nodeType = "OTHER", ipAddress = "10.0.0.11" },
+# ]
+ansible_storages = []
+
 # -----------------------------------------------------------------------------
 # Client Configuration
 # -----------------------------------------------------------------------------
