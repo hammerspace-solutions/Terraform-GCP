@@ -102,6 +102,12 @@ variable "create_firewall_rules" {
   default     = true
 }
 
+variable "create_nat_gateway" {
+  description = "Whether to create a Cloud NAT gateway for private instances to access the internet"
+  type        = bool
+  default     = true
+}
+
 variable "ssh_keys" {
   description = "SSH public keys to add to instances. Format: 'username:ssh-rsa AAAAB3N...'"
   type        = list(string)

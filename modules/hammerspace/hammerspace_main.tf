@@ -131,7 +131,13 @@ resource "google_compute_instance" "anvil1" {
     subnetwork = local.subnet_self_link
     network_ip = var.anvil_count > 1 ? google_compute_address.anvil1_ip[0].address : null
 
-    # Note: Cluster alias IP is on Secondary node (anvil2) per original GCP pattern
+    # Cluster alias IP on Primary node for HA initialization
+    dynamic "alias_ip_range" {
+      for_each = var.anvil_count > 1 ? [1] : []
+      content {
+        ip_cidr_range = "${google_compute_address.anvil_cluster_ip[0].address}/32"
+      }
+    }
 
     dynamic "access_config" {
       for_each = var.assign_public_ip ? [1] : []
@@ -268,10 +274,7 @@ resource "google_compute_instance" "anvil2" {
     subnetwork = local.subnet_self_link
     network_ip = google_compute_address.anvil2_ip[0].address
 
-    # Cluster alias IP is assigned to Secondary node per original GCP pattern
-    alias_ip_range {
-      ip_cidr_range = "${google_compute_address.anvil_cluster_ip[0].address}/32"
-    }
+    # No alias IP on Secondary - Primary owns the cluster VIP
 
     dynamic "access_config" {
       for_each = var.assign_public_ip ? [1] : []

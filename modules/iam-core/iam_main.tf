@@ -75,7 +75,7 @@ resource "google_service_account_iam_member" "instance_user" {
 resource "google_project_iam_custom_role" "hammerspace" {
   count = local.create_service_account ? 1 : 0
 
-  role_id     = "${replace(var.common_config.project_name, "-", "_")}_hammerspace_role"
+  role_id     = "${replace(var.common_config.project_name, "-", "_")}_hs_role"
   title       = "${var.common_config.project_name} Hammerspace Role"
   description = "Custom role for Hammerspace operations"
   project     = var.common_config.project_id

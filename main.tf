@@ -438,6 +438,14 @@ module "iam_core" {
   extra_roles           = var.iam_additional_roles
 }
 
+# Data source to read cluster IP from GCP (avoids module cycle)
+data "google_compute_address" "hammerspace_cluster_ip" {
+  count   = local.deploy_hammerspace && local.deploy_ansible && var.hammerspace_anvil_count > 1 ? 1 : 0
+  name    = "${var.project_name}-cluster-ip"
+  region  = var.region
+  project = var.project_id
+}
+
 # Deploy the Ansible module if requested
 
 module "ansible" {
@@ -476,11 +484,10 @@ module "ansible" {
   ssh_keys           = var.ansible_ssh_keys
 
   # Ansible Controller Daemon Configuration
-  # Note: anvil_cluster_ip and storages are configured via terraform.tfvars
-  # after initial deployment when the Anvil cluster IP and ECGroup node IPs are known.
+  # Automatically gets cluster IP from GCP when hammerspace is deployed with HA (anvil_count > 1)
 
   enable_daemon     = var.ansible_enable_daemon
-  anvil_cluster_ip  = var.ansible_anvil_cluster_ip
+  anvil_cluster_ip  = length(data.google_compute_address.hammerspace_cluster_ip) > 0 ? data.google_compute_address.hammerspace_cluster_ip[0].address : var.ansible_anvil_cluster_ip
   hs_username       = "admin"
   hs_password       = var.admin_user_password
   volume_group_name = var.ansible_volume_group_name
@@ -661,6 +668,57 @@ module "ecgroup" {
 
   depends_on = [
     module.ansible,
+    module.hammerspace
+  ]
+}
+
+# -----------------------------------------------------------------------------
+# Trigger ansible daemon after storage servers are deployed
+# This updates the ansible vars file with storage server info and triggers the daemon
+# NOTE: Requires working gcloud CLI. If gcloud is not available locally,
+#       run the trigger manually from Cloud Shell after deployment.
+# -----------------------------------------------------------------------------
+
+resource "null_resource" "ansible_storage_trigger" {
+  # Disabled - requires working gcloud CLI locally. Trigger manually from Cloud Shell.
+  count = 0  # local.deploy_ansible && local.deploy_storage ? 1 : 0
+
+  triggers = {
+    # Re-run when storage server IPs change
+    storage_ips = join(",", module.storage_servers[0].storage_private_ips)
+    ansible_ip  = module.ansible[0].ansible_private_ips[0]
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      # Build storages JSON
+      STORAGES_JSON='${jsonencode([
+        for inst in module.storage_servers[0].storage_ansible_info : {
+          name      = inst.hostname
+          nodeType  = "OTHER"
+          ipAddress = inst.private_ip
+        }
+      ])}'
+
+      # Update vars file on ansible instance
+      gcloud compute ssh ${module.ansible[0].ansible_instances[keys(module.ansible[0].ansible_instances)[0]].name} \
+        --zone=${var.zone} \
+        --project=${var.project_id} \
+        --tunnel-through-iap \
+        --command="sudo bash -c 'cat /usr/local/ansible/vars/hammerspace_vars.json | jq --argjson storages \"\$STORAGES_JSON\" \".storages = \\\$storages\" > /tmp/vars.json && mv /tmp/vars.json /usr/local/ansible/vars/hammerspace_vars.json'"
+
+      # Trigger the ansible daemon by updating inventory file
+      gcloud compute ssh ${module.ansible[0].ansible_instances[keys(module.ansible[0].ansible_instances)[0]].name} \
+        --zone=${var.zone} \
+        --project=${var.project_id} \
+        --tunnel-through-iap \
+        --command="echo '[all]' | sudo tee /var/ansible/trigger/inventory.ini"
+    EOT
+  }
+
+  depends_on = [
+    module.ansible,
+    module.storage_servers,
     module.hammerspace
   ]
 }

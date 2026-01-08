@@ -83,6 +83,10 @@ locals {
       "path"        = var.share_config.path
       "exportPath"  = var.share_config.exportPath
       "description" = var.share_config.description
+      "volumeGroup" = {
+        "_type" = "VOLUME_GROUP"
+        "name"  = var.volume_group_name
+      }
       "exportOptions" = [
         {
           "_type"                  = "EXPORT_OPTION"

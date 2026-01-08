@@ -242,17 +242,21 @@
       register: volume_groups_response_updated
       until: >-
         (
-          volume_groups_response_updated.json
-          | selectattr('name', 'equalto', volume_group_name)
-          | map(attribute='expressions')
-          | map('first')
-          | map(attribute='locations')
-          | map('map', attribute='node')
-          | map('map', attribute='name')
-          | list
+          (
+            volume_groups_response_updated.json
+            | selectattr('name', 'equalto', volume_group_name)
+            | list
+            | first
+            | default({})
+          ).get('expressions', [])
           | first
-          | sort
-        ) ==
+          | default({})
+        ).get('locations', [])
+        | map(attribute='node')
+        | map(attribute='name')
+        | list
+        | sort
+        ==
         (
           storages | selectattr('nodeType', 'equalto', 'OTHER') | map(attribute='name') | list | sort
         )
